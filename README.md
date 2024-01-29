@@ -1,1 +1,3 @@
-Vores kode til projekt 1
+Vores kode til projekt 1   
+
+Det er nemlig rigtigt Anders
