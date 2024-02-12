@@ -3,6 +3,9 @@
 import smbus
 import time
 
+#
+#
+# For RGB sensor
 # Get I2C bus
 bus = smbus.SMBus(1)
 
@@ -80,5 +83,6 @@ def getAndUpdateColour():
 		print()
 		
 		time.sleep(2) 
+
 
 getAndUpdateColour()
