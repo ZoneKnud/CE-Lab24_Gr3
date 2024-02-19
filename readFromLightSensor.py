@@ -3,35 +3,33 @@
 import smbus
 import time
 
-#
-#
-# For RGB sensor
-# Get I2C bus
-bus = smbus.SMBus(1)
-
-# ISL29125 address, 0x44(68)
-# Select configuation-1register, 0x01(01)
-# 0x0D(13) Operation: RGB, Range: 360 lux, Res: 16 Bits
-bus.write_byte_data(0x44, 0x01, 0x05)
-
-time.sleep(1)
-
-print("Reading colour values and displaying them in a new window\n")
-
 def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
-    return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
+	return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
 
-def getAndUpdateColour():
-	while True:
-	# Read the data from the sensor
+class lightSensorRead(object):
+
+	def __init__(self):
+		self.currentColor = "none"
+		# For RGB sensor
+		# Get I2C bus
+		self.bus = smbus.SMBus(1)
+
+		# ISL29125 address, 0x44(68)
+		# Select configuation-1register, 0x01(01)
+		# 0x0D(13) Operation: RGB, Range: 360 lux, Res: 16 Bits
+		self.bus.write_byte_data(0x44, 0x01, 0x05)
+
+	def getAndUpdateColour(self):
+		# Read the data from the sensor
 		# Insert code here
 		# read_byte(i2c_addr,force=None) – To read a single byte from a device.
 		# read_byte_data(i2c_addr,register,force=None) – To read a single byte from a designated register.
 		# read_block_data(i2c_addr,register,force=None) – To read a block of up to 32-bytes from a given register.
 		# read_i2c_block_data(i2c_addr,register,length,force=None) – To read a block of byte data from a given register.
-		readdata = bus.read_i2c_block_data(0x44, 0x09, 6)
-		print(readdata)
+		readdata = self.bus.read_i2c_block_data(0x44, 0x09, 6)
+		# print(readdata)
 
+		# Combine high byte and low byte by shifting high byte 8 bits to the left and OR with low bit.
 		red = readdata[3] << 8 | readdata[2]
 		green = readdata[1] << 8 | readdata[0]
 		blue = readdata[5] << 8 | readdata[4]
@@ -48,9 +46,11 @@ def getAndUpdateColour():
 
 
 		if isclose(red, green, abs_tol = 800) and isclose(green, blue, abs_tol = 800) and isclose(red, blue, abs_tol = 800) and green <= 3000:
-			print("BLACK!!!")
+			# print("BLACK!!!")
+			self.currentColor = "black"
 		elif isclose(red, green, abs_tol = 5000) and isclose(green, blue, abs_tol = 5000) and isclose(red, blue, abs_tol = 5000) and green > 10000:
-			print("WHITE!!!")
+			# print("WHITE!!!")
+			self.currentColor = "white"
 		# elif isclose(green, blue, abs_tol = 5000) and green > red and blue > red:
 		# 	print("CYAN!!!")
 		# elif isclose(red, blue, abs_tol = 5000) and red > green and blue > green:
@@ -58,31 +58,12 @@ def getAndUpdateColour():
 		# elif isclose(red, green, abs_tol = 5000) and red > blue and green > blue:
 		# 	print("YELLOW!!!")
 		elif red > green and red > blue:
-			print("RED!!!")
+			# print("RED!!!")
+			self.currentColor = "red"
 		elif green > red and green > blue:
-			print("GREEN!!!")
+			# print("GREEN!!!")
+			self.currentColor = "green"
 		else:
-			print("BLUE!!!")
+			# print("BLUE!!!")
+			self.currentColor = "blue"
 
-		# BLÅ farve:
-		# red:   4499
-		# green: 9995
-		# blue:  6333
-
-		
-
-
-
-		# Convert the data to green, red and blue int values
-		# Insert code here
-		
-		
-		# Output data to the console RGB values
-		# Uncomment the line below when you have read the red, green and blue values
-		# print("RGB(%d %d %d)" % (red, green, blue))
-		print()
-		
-		time.sleep(2) 
-
-
-getAndUpdateColour()
