@@ -1,0 +1,185 @@
+#!/usr/bin/env python
+#################################################################################
+# Copyright 2018 ROBOTIS CO., LTD.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#################################################################################
+
+# Authors: Gilbert #
+
+# import rospy
+# import math
+# from sensor_msgs.msg import LaserScan
+# from geometry_msgs.msg import Twist
+
+import rospy
+import math
+import time
+from random import randrange
+from sensor_msgs.msg import LaserScan
+from geometry_msgs.msg import Twist
+import sys
+import select
+import tty
+import termios
+
+LINEAR_VEL = 0.05
+STOP_DISTANCE = 0.2
+LIDAR_ERROR = 0.05
+SAFE_STOP_DISTANCE = STOP_DISTANCE + LIDAR_ERROR
+
+class Obstacle():
+	def __init__(self):
+		self._cmd_pub = rospy.Publisher('cmd_vel', Twist, queue_size=1)
+		self.obstacle()
+
+	def is_key_available(self):
+		return select.select([sys.stdin],[],[],0) == ([sys.stdin],[],[])
+			
+	def get_key(self):
+		return sys.stdin.read(1)
+		
+	def get_scan(self):
+		# print("get scan called")
+		scan = rospy.wait_for_message('scan', LaserScan)
+		# print("got scan")
+		scan_filter = []
+	   
+		samples = len(scan.ranges)  # The number of samples is defined in 
+									# turtlebot3_<model>.gazebo.xacro file,
+									# the default is 360.
+		samples_view = 90            # 1 <= samples_view <= samples
+		
+		if samples_view > samples:
+			samples_view = samples
+
+		if samples_view is 1:
+			scan_filter.append(scan.ranges[0])
+
+		else:
+			left_lidar_samples_ranges = -(samples_view//2 + samples_view % 2)
+			right_lidar_samples_ranges = samples_view//2
+			# print("left_lidar_samples_ranges" + str(left_lidar_samples_ranges))
+			# print("right_lidar_samples_ranges" + str(right_lidar_samples_ranges))
+			# print(f"left_lidar_samples_ranges:  {left_lidar_samples_ranges}")
+			# print(f"right_lidar_samples_ranges: {right_lidar_samples_ranges}")
+			
+			left_lidar_samples = scan.ranges[left_lidar_samples_ranges:]
+			right_lidar_samples = scan.ranges[:right_lidar_samples_ranges]
+			scan_filter.extend(left_lidar_samples + right_lidar_samples)
+
+		for i in range(samples_view):
+			if scan_filter[i] == float('Inf'):
+				scan_filter[i] = 3.5
+			elif scan_filter[i] < 0.001:
+				# print("Close to zero!")
+				scan_filter[i] = 1
+			elif math.isnan(scan_filter[i]):
+				print("Yo not a number bro!")
+				scan_filter[i] = 0
+
+		# print(scan_filter)
+		
+		return scan_filter
+
+	def obstacle(self):
+		# print("hello world")
+		twist = Twist()
+		turtlebot_moving = True
+
+		while not rospy.is_shutdown():
+			if self.is_key_available():
+				char = self.get_key()
+				if char.lower() == 'q':
+					twist.linear.x = 0.0
+					twist.angular.z = 0.0
+					self._cmd_pub.publish(twist)
+					return
+			# print("loop started")
+			lidar_distances = self.get_scan()
+			min_distance = min(lidar_distances)
+			min_distance_angle = -1
+
+			cnt_intervals = 9
+			angle_range = len(lidar_distances)
+
+			for i in range(0, cnt_intervals):
+				index1 = int((angle_range / cnt_intervals) * i)
+				index2 = int((angle_range / cnt_intervals) * (i + 1))
+				if min_distance in lidar_distances[index1:index2]:
+					min_distance_angle = index1
+
+			print(str(min_distance_angle) + "-" + str( (angle_range / cnt_intervals) + min_distance_angle ) + "Distance of the obstacle : " + str(min_distance))
+			
+
+			# if min_distance < SAFE_STOP_DISTANCE:
+			# 	# Stop 
+			# 	rospy.loginfo('Distance of the obstacle : %f', min_distance)
+			# 	if turtlebot_moving:
+			# 		# print("pos3")
+			# 		twist.linear.x = 0.0
+			# 		twist.angular.z = 0.0
+			# 		self._cmd_pub.publish(twist)
+			# 		turtlebot_moving = False
+			# 		rospy.loginfo('Stop!')
+
+			# else:
+			if min_distance < 0.25:
+				if 20 <= min_distance_angle <= 40:
+					twist.linear.x = 0.0
+					twist.angular.z = 0.5
+				elif 40 <= min_distance_angle <= 70:
+					twist.linear.x = 0.0
+					twist.angular.z = -0.5
+				else:
+					twist.linear.x = LINEAR_VEL
+					twist.angular.z = 0.0
+			else:
+				twist.linear.x = LINEAR_VEL
+				twist.angular.z = 0.0
+
+
+			# if 0 <= min_distance_angle <= 20:
+			# 	if min_distance < 0.25:
+			# 		twist.linear.x = 0.0
+			# 		twist.angular.z = 0.5
+			# 	else:
+			# 		twist.linear.x = LINEAR_VEL
+			# 		twist.angular.z = 0.0
+			# if 20 < min_distance_angle <= 70:
+			# 	twist.linear.x = LINEAR_VEL
+			# 	twist.angular.z = 0.0
+			# if 70 < min_distance_angle <= 90:
+			# 	if min_distance < 0.25:
+			# 		twist.linear.x = 0.0
+			# 		twist.angular.z = -0.5
+			# 	else:
+			# 		twist.linear.x = LINEAR_VEL
+			# 		twist.angular.z = 0.0
+			
+				
+			# twist.linear.x = LINEAR_VEL
+			# twist.angular.z = 0.0
+			self._cmd_pub.publish(twist)
+			turtlebot_moving = True
+			# rospy.loginfo('Distance of the obstacle : %f', min_distance)
+
+def main():
+	rospy.init_node('turtlebot3_obstacle')
+	try:
+		obstacle = Obstacle()
+	except rospy.ROSInterruptException:
+		pass
+
+if __name__ == '__main__':
+	main()

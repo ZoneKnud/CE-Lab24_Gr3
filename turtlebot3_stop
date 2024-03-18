@@ -1,0 +1,54 @@
+#!/usr/bin/env python
+#################################################################################
+# Copyright 2018 ROBOTIS CO., LTD.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#################################################################################
+
+# Authors: Gilbert #
+
+import rospy
+import math
+from sensor_msgs.msg import LaserScan
+from geometry_msgs.msg import Twist
+
+LINEAR_VEL = 0.05
+STOP_DISTANCE = 0.2
+LIDAR_ERROR = 0.05
+SAFE_STOP_DISTANCE = STOP_DISTANCE + LIDAR_ERROR
+
+class Obstacle():
+	def __init__(self):
+		self._cmd_pub = rospy.Publisher('cmd_vel', Twist, queue_size=1)
+		self.obstacle()
+
+	def obstacle(self):
+		# print("hello world")
+		twist = Twist()
+
+		while not rospy.is_shutdown():
+			twist.linear.x = 0.0
+			twist.angular.z = 0.0
+			self._cmd_pub.publish(twist)
+			turtlebot_moving = True
+			# rospy.loginfo('Distance of the obstacle : %f', min_distance)
+
+def main():
+	rospy.init_node('turtlebot3_stop')
+	try:
+		obstacle = Obstacle()
+	except rospy.ROSInterruptException:
+		pass
+
+if __name__ == '__main__':
+	main()
