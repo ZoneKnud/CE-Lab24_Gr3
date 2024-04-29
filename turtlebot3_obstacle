@@ -32,11 +32,33 @@ import sys
 import select
 import tty
 import termios
+import math
 
-LINEAR_VEL = 0.05
+LINEAR_VEL = 0.2
+ANGULAR_VEL = 2.0
 STOP_DISTANCE = 0.2
 LIDAR_ERROR = 0.05
 SAFE_STOP_DISTANCE = STOP_DISTANCE + LIDAR_ERROR
+
+
+# def calculate_speed(min_distance, min_distance_angle):
+
+def Average(lst): 
+	bogus_readings = lst.count(5)
+	length = len(lst) - bogus_readings
+	average = 0
+	for i in lst:
+		if i != 5:
+			average += i
+
+	if length > 0:
+		average = average / length
+		return average
+	else:
+		return 0
+
+	
+
 
 class Obstacle():
 	def __init__(self):
@@ -58,44 +80,86 @@ class Obstacle():
 		samples = len(scan.ranges)  # The number of samples is defined in 
 									# turtlebot3_<model>.gazebo.xacro file,
 									# the default is 360.
-		samples_view = 90            # 1 <= samples_view <= samples
+		# print(samples)
+		# print("num of samples: " + str(samples))
+		# print(scan)
+		# samples_view = 180            # 1 <= samples_view <= samples
 		
-		if samples_view > samples:
-			samples_view = samples
+		# if samples_view > samples:
+		# 	samples_view = samples
 
-		if samples_view is 1:
-			scan_filter.append(scan.ranges[0])
+		# if samples_view is 1:
+		# 	scan_filter.append(scan.ranges[0])
 
-		else:
-			left_lidar_samples_ranges = -(samples_view//2 + samples_view % 2)
-			right_lidar_samples_ranges = samples_view//2
-			# print("left_lidar_samples_ranges" + str(left_lidar_samples_ranges))
-			# print("right_lidar_samples_ranges" + str(right_lidar_samples_ranges))
-			# print(f"left_lidar_samples_ranges:  {left_lidar_samples_ranges}")
-			# print(f"right_lidar_samples_ranges: {right_lidar_samples_ranges}")
+		# else:
+		# 	left_lidar_samples_ranges = -(samples_view//2 + samples_view % 2)
+		# 	right_lidar_samples_ranges = samples_view//2
+		# 	# print("left_lidar_samples_ranges" + str(left_lidar_samples_ranges))
+		# 	# print("right_lidar_samples_ranges" + str(right_lidar_samples_ranges))
+		# 	# print(f"left_lidar_samples_ranges:  {left_lidar_samples_ranges}")
+		# 	# print(f"right_lidar_samples_ranges: {right_lidar_samples_ranges}")
 			
-			left_lidar_samples = scan.ranges[left_lidar_samples_ranges:]
-			right_lidar_samples = scan.ranges[:right_lidar_samples_ranges]
-			scan_filter.extend(left_lidar_samples + right_lidar_samples)
+		# 	left_lidar_samples = scan.ranges[left_lidar_samples_ranges:]
+		# 	right_lidar_samples = scan.ranges[:right_lidar_samples_ranges]
+		# 	scan_filter.extend(left_lidar_samples + right_lidar_samples)
+  
+		scan_filter = scan.ranges
 
-		for i in range(samples_view):
+		# print(type(scan_filter))
+		scan_filter = list(scan_filter)
+		# print(scan_filter)
+
+		# for i in range(samples_view):
+		for i in range(samples):
 			if scan_filter[i] == float('Inf'):
-				scan_filter[i] = 3.5
+				scan_filter[i] = 5
 			elif scan_filter[i] < 0.001:
 				# print("Close to zero!")
-				scan_filter[i] = 1
+				scan_filter[i] = 5
 			elif math.isnan(scan_filter[i]):
 				print("Yo not a number bro!")
-				scan_filter[i] = 0
+				scan_filter[i] = 5
+
+		# mangler 105
+		# appended = 0
+		# print(len(scan_filter))
+		# for i in range(len(scan_filter)):
+		# 	if i % 3: # 255 / 3 = 85
+		# 		appended += 1
+		# 		scan_filter.insert(i, (scan_filter[i-1] + scan_filter[i+1]) / 2)
+		# 	if i % 25: # 255 / 15 = 17
+		# 		# appended += 1
+		# 		scan_filter.insert(i, (scan_filter[i-1] + scan_filter[i+1]) / 2)
+
+		
+		# appended += 1
+		# print(appended)
+
+		# scan_filter = scan_filter[10:] + scan_filter[:10]
+		# scan_filter = scan_filter[10:] + scan_filter[:10]
 
 		# print(scan_filter)
+  
+		# for i in range(len(scan_filter)):
+		# 	print(i, scan_filter[i])
+
+		time.sleep(0.5)
 		
 		return scan_filter
 
 	def obstacle(self):
 		# print("hello world")
 		twist = Twist()
-		turtlebot_moving = True
+		
+		twist.linear.x = 0.1
+		twist.angular.z = 0.0
+		self._cmd_pub.publish(twist)		
+
+		time.sleep(5)
+
+		print("Robot init done")
+
+		
 
 		while not rospy.is_shutdown():
 			if self.is_key_available():
@@ -105,22 +169,46 @@ class Obstacle():
 					twist.angular.z = 0.0
 					self._cmd_pub.publish(twist)
 					return
-			# print("loop started")
-			lidar_distances = self.get_scan()
-			min_distance = min(lidar_distances)
-			min_distance_angle = -1
 
-			cnt_intervals = 9
+			remaining_angle = 0
+
+			lidar_distances = self.get_scan()
+
+			print(lidar_distances)
+
+
+			min_distance = min(lidar_distances)
+			min_distance_index = lidar_distances.index(min_distance)
+
+			# print(min_distance_index, min_distance)
+
+			min_distance_angle = int(min_distance_index)
+
+			cnt_intervals = 24
 			angle_range = len(lidar_distances)
+
+			cones = []
 
 			for i in range(0, cnt_intervals):
 				index1 = int((angle_range / cnt_intervals) * i)
 				index2 = int((angle_range / cnt_intervals) * (i + 1))
-				if min_distance in lidar_distances[index1:index2]:
-					min_distance_angle = index1
+				print(lidar_distances[index1:index2])
 
-			print(str(min_distance_angle) + "-" + str( (angle_range / cnt_intervals) + min_distance_angle ) + "Distance of the obstacle : " + str(min_distance))
-			
+
+
+
+
+				average = Average(lidar_distances[index1:index2])
+				cones.append(average)
+				# time.sleep(5)
+
+			for i in cones:
+				print(i)
+
+
+
+			# time.sleep(30)
+			# print("Distance of the obstacle : " + str(min_distance, min_distance_angle))			
 
 			# if min_distance < SAFE_STOP_DISTANCE:
 			# 	# Stop 
@@ -133,20 +221,191 @@ class Obstacle():
 			# 		turtlebot_moving = False
 			# 		rospy.loginfo('Stop!')
 
-			# else:
-			if min_distance < 0.25:
-				if 20 <= min_distance_angle <= 40:
-					twist.linear.x = 0.0
-					twist.angular.z = 0.5
-				elif 40 <= min_distance_angle <= 70:
-					twist.linear.x = 0.0
-					twist.angular.z = -0.5
-				else:
-					twist.linear.x = LINEAR_VEL
-					twist.angular.z = 0.0
+			# # else:
+
+			# speed er linear
+
+			# angular er den inverse
+
+			averages = []
+			# find gennemsnittet af de foreste.
+   
+			print(len(cones))
+
+			averages.append(Average(cones[20:22]))
+			averages.append((cones[0] + cones[23]) / 2)
+			averages.append(Average(cones[:3]))
+
+			binaries = []
+
+			if averages[0] < 0.5:
+				# Vi vil gerne have at den drejer lidt mod venstre
+				binaries.append(True)
+			else:
+				binaries.append(False)
+			
+			if averages[1] < 0.5:
+				binaries.append(True)
+			else:
+				binaries.append(False)
+			
+			if averages[2] < 0.5:
+				binaries.append(True)
+			else:
+				binaries.append(False)
+
+			print(binaries)
+
+
+			if binaries[0] and binaries[1] and binaries[2]:
+				# Turn hard
+				twist.linear.x = 0
+				twist.angular.z = ANGULAR_VEL
+
+			elif binaries[0] and binaries[1]:
+				# Turn to the left sharp
+				twist.linear.x = 0.05
+				twist.angular.z = ANGULAR_VEL
+
+			elif binaries[1] and binaries[2]:
+				# Turn to the right sharp
+				twist.linear.x = 0.05
+				twist.angular.z = -ANGULAR_VEL
+				
+			
+			elif binaries[0]:
+				index = cones.index(min(cones[20:22])) # Giver 0, 1 eller 2.
+				index -= 20
+				# Calculate the angular and linear speed:
+				linear_speed = LINEAR_VEL - 0.5 * index
+				# If linear speed is high, then angular speed needs to be low.
+				angular_speed = -(ANGULAR_VEL - (linear_speed * 10))
+				print("linear_speed:  " + str(linear_speed))
+				print("angular_speed: " + str(angular_speed))
+
+				twist.linear.x = linear_speed
+				twist.angular.z = angular_speed
+
+			elif binaries[1]:
+				sign = 1
+				if cones[0] < cones[23]:
+					sign = -1
+
+				# Calculate the angular and linear speed:
+				linear_speed = LINEAR_VEL / 2
+				# If linear speed is high, then angular speed needs to be low.
+				angular_speed = sign * (ANGULAR_VEL)
+
+				twist.linear.x = linear_speed
+				twist.angular.z = angular_speed
+
+			elif binaries[2]:
+				reverse = cones[:3]
+				reverse.reverse()
+				print(cones[:3])
+				print(reverse)
+				print(min(reverse))
+				index = reverse.index(min(reverse)) # Giver 0, 1 eller 2
+				# Calculate the angular and linear speed:
+				linear_speed = LINEAR_VEL - 0.5 * index
+				# If linear speed is high, then angular speed needs to be low.
+				angular_speed = - (ANGULAR_VEL - (linear_speed * 10))
+
+				twist.linear.x = linear_speed
+				twist.angular.z = angular_speed
+
 			else:
 				twist.linear.x = LINEAR_VEL
-				twist.angular.z = 0.0
+				twist.angular.z = 0
+
+
+
+
+
+			# for i, cone in enumerate(cones):
+			# 	cone[1] 
+
+
+
+
+
+
+
+
+
+			# 	if 0 <= i <= 3 or 20 <= i <= 23: # Foran
+			# 		if cones[0:3] < cones[20:23]:
+
+			# 		if math.isclose(cones[0], cones[-1]):
+						
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+			# if 0 <= min_distance_angle <= 60: # Vi skal til at dreje lidt til hoejre.
+			# 	if 0 <= min_distance_angle <= 20: # Lige for til venstre
+			# 		twist.linear.x = LINEAR_VEL / 3
+			# 		twist.angular.z = ANGULAR_VEL
+			# 	elif 20 < min_distance_angle <= 40: # Lidt laengere til venstre
+			# 		twist.linear.x = LINEAR_VEL / 2
+			# 		twist.angular.z = ANGULAR_VEL / 2
+			# 	elif 40 < min_distance_angle <= 60:
+			# 		twist.linear.x = LINEAR_VEL / 1.5
+			# 		twist.angular.z = ANGULAR_VEL / 3
+			# elif 0 <= min_distance_angle <= 60: # Vi skal til at dreje lidt til venstre.
+			# 	if 340 <= min_distance_angle <= 360: # Lige for til hoejre
+			# 		twist.linear.x = LINEAR_VEL / 3
+			# 		twist.angular.z = -ANGULAR_VEL
+			# 	elif 320 < min_distance_angle <= 340: # Lidt laengere til hoejre
+			# 		twist.linear.x = LINEAR_VEL / 2
+			# 		twist.angular.z = -ANGULAR_VEL / 2
+			# 	elif 300 < min_distance_angle <= 320:
+			# 		twist.linear.x = LINEAR_VEL / 1.5
+			# 		twist.angular.z = -ANGULAR_VEL / 3
+			# else:
+			# 	twist.linear.x = LINEAR_VEL
+			# 	twist.angular.z = 0.0
+   
+
+
+
+
+
+
+
+
+
+
+
+			# if min_distance < SAFE_STOP_DISTANCE:
+
+			# 	if 0 <= min_distance_angle <= 60:
+			# 		if 0 <= min_distance_angle <= 20: # Lige for til venstre
+			# 			twist.linear.x = 0.0
+			# 			twist.angular.z = 0.5
+			# 		elif 20 < min_distance_angle <= 40: # Lidt laengere til venstre
+			# 			twist.linear.x = 0.0
+			# 			twist.angular.z = -0.5
+			# 		elif 40 < min_distance_angle <= 60:
+			# 			twist.linear.x = 0.0
+			# 			twist.angular.z = -0.5
+			# 	else:
+			# 		twist.linear.x = LINEAR_VEL
+			# 		twist.angular.z = 0.0
+			# else:
+			# 	twist.linear.x = LINEAR_VEL
+			# 	twist.angular.z = 0.0
 
 
 			# if 0 <= min_distance_angle <= 20:
@@ -183,3 +442,4 @@ def main():
 
 if __name__ == '__main__':
 	main()
+
