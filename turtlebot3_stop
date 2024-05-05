@@ -21,6 +21,7 @@ import rospy
 import math
 from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import Twist
+import time
 
 LINEAR_VEL = 0.05
 STOP_DISTANCE = 0.2
@@ -36,10 +37,31 @@ class Obstacle():
 		# print("hello world")
 		twist = Twist()
 
+		count = 0
+
 		while not rospy.is_shutdown():
-			twist.linear.x = 0.0
-			twist.angular.z = 0.0
+			if count == 0:
+				twist.linear.x = 0.0
+				twist.angular.z = 0.0
+
+			if count == 1:
+				twist.linear.x = 0.2
+				twist.angular.z = 0.0
+
+			if count == 2:
+				twist.linear.x = -0.2
+				twist.angular.z = 0.0
+
+			if count == 3:
+				twist.linear.x = 0.0
+				twist.angular.z = 2.0
+
+			if count == 4:
+				twist.linear.x = 0.0
+				twist.angular.z = -2.0
+			
 			self._cmd_pub.publish(twist)
+			time.sleep(1)
 			turtlebot_moving = True
 			# rospy.loginfo('Distance of the obstacle : %f', min_distance)
 

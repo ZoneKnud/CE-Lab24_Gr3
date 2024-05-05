@@ -40,9 +40,9 @@ class lightSensorRead(object):
 		# green = int(readdata[1])*256 + int(readdata[0])
 		# blue = int(readdata[5])*256 + int(readdata[4])
 
-		print("red:   " + str(red))
-		print("green: " + str(green))
-		print("blue:  " + str(blue))
+		# print("red:   " + str(red))
+		# print("green: " + str(green))
+		# print("blue:  " + str(blue))
 
 
 		if isclose(red, green, abs_tol = 800) and isclose(green, blue, abs_tol = 800) and isclose(red, blue, abs_tol = 800) and green <= 3000:

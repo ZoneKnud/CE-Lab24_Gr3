@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Robot</title>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"
+		integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g=="
+		crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+	<style>
+		.center {
+			width: 69px;
+			height: 87px;
+			position: fixed;
+			top: 240px;
+			left: 226px;
+			background-color: rgb(53, 53, 53);
+		}
+
+		.pie {
+			width: 500px;
+			height: 500px;
+			border-radius: 50%;
+			float: left;
+		}
+
+		#right {
+			padding-left: 20px;
+		}
+
+		#color {
+			width: 500px;
+			height: 50px;
+		}
+	</style>
+</head>
+
+<body>
+	<div class="container">
+		<div class="center"></div>
+		<div id="color"></div>
+		<div class="pie" id="pie"></div>
+		<div id="right">
+			<p id="databox">Hejsa bror</p>
+		</div>
+	</div>
+
+	<script>
+		let pie = document.getElementById("pie");
+		let databox = document.getElementById("databox")
+		let colorbox = document.getElementById("color");
+
+		$(document).ready(function () {
+			setInterval(() => {
+				$.getJSON('http://192.168.137.1:5000/get_data', function (data) {
+					console.log(data)
+					
+					databox.innerHTML = "";
+					cones = data.slice(0, 23);
+					cones.reverse();
+
+					var dataToShow = "conic-gradient(";
+					var color = 0;
+					var deg = 0;
+					for (let i = 0; i < cones.length; i++) {
+						databox.innerHTML += cones[i] + "<br>";
+						if (cones[i] > 1) {
+							color = 200
+						} else {
+							color = cones[i] * 100
+						}
+
+						// dataToShow += "rgb(" + color + " " + color2 + " " + color3 + ") " + deg + "deg " + (deg + 15);
+						dataToShow += "rgb(" + 255 + " " + color + " " + color + ") " + deg + "deg " + (deg + 15);
+						if (i != 23) {
+							dataToShow += "deg, ";
+						} else {
+							dataToShow += "deg";
+						}
+						// color += 20;
+						// color = Math.floor(Math.random() * 255);;
+						// color3 = Math.floor(Math.random() * 255);;
+						deg += 15;
+					}
+					dataToShow += ")";
+					console.log(dataToShow)
+					pie.style.backgroundImage = dataToShow;
+					colorbox.style.backgroundColor = data[-1];
+				});
+			}, 100);
+
+		});
+
+	</script>
+</body>
+
+</html>
