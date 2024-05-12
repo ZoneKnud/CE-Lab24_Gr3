@@ -10,6 +10,9 @@ class lightSensorRead(object):
 
 	def __init__(self):
 		self.currentColor = "none"
+		self.red = 0
+		self.blue = 0
+		self.green = 0
 		# For RGB sensor
 		# Get I2C bus
 		self.bus = smbus.SMBus(1)
@@ -30,40 +33,51 @@ class lightSensorRead(object):
 		# print(readdata)
 
 		# Combine high byte and low byte by shifting high byte 8 bits to the left and OR with low bit.
-		red = readdata[3] << 8 | readdata[2]
-		green = readdata[1] << 8 | readdata[0]
-		blue = readdata[5] << 8 | readdata[4]
+		self.red = readdata[3] << 8 | readdata[2]
+		self.green = readdata[1] << 8 | readdata[0]
+		self.blue = readdata[5] << 8 | readdata[4]
 
-		blue = blue * 2
+		# blue = blue
+		# green *= 0.9
+		# red *= 1.3
 
 		# red = int(readdata[3])*256 + int(readdata[2])
 		# green = int(readdata[1])*256 + int(readdata[0])
 		# blue = int(readdata[5])*256 + int(readdata[4])
 
-		# print("red:   " + str(red))
-		# print("green: " + str(green))
-		# print("blue:  " + str(blue))
+		print("red:   " + str(self.red))
+		print("green: " + str(self.green))
+		print("blue:  " + str(self.blue))
 
 
-		if isclose(red, green, abs_tol = 800) and isclose(green, blue, abs_tol = 800) and isclose(red, blue, abs_tol = 800) and green <= 3000:
-			# print("BLACK!!!")
-			self.currentColor = "black"
-		elif isclose(red, green, abs_tol = 5000) and isclose(green, blue, abs_tol = 5000) and isclose(red, blue, abs_tol = 5000) and green > 10000:
-			# print("WHITE!!!")
+		# if isclose(red, green, abs_tol = 800) and isclose(green, blue, abs_tol = 800) and isclose(red, blue, abs_tol = 800) and green <= 3000:
+		# 	# print("BLACK!!!")
+		# 	self.currentColor = "black"
+		# elif isclose(red, green, abs_tol = 5000) and isclose(green, blue, abs_tol = 5000) and isclose(red, blue, abs_tol = 5000) and green > 10000:
+		# 	# print("WHITE!!!")
+		if self.green > 50000 and self.red > 50000 and self.blue > 50000:
 			self.currentColor = "white"
-		# elif isclose(green, blue, abs_tol = 5000) and green > red and blue > red:
-		# 	print("CYAN!!!")
-		# elif isclose(red, blue, abs_tol = 5000) and red > green and blue > green:
-		# 	print("PURPLE!!")
-		# elif isclose(red, green, abs_tol = 5000) and red > blue and green > blue:
-		# 	print("YELLOW!!!")
-		elif red > green and red > blue:
+		
+		elif self.red > 19000 and self.blue > 19000 and self.green > 19000:
+			self.currentColor = "grey"
+		
+		
+		elif self.red > self.green and self.red > self.blue + 7000:
 			# print("RED!!!")
 			self.currentColor = "red"
-		elif green > red and green > blue:
+		elif self.green > self.red + 10000 and self.green > self.blue + 5000:
 			# print("GREEN!!!")
 			self.currentColor = "green"
 		else:
 			# print("BLUE!!!")
 			self.currentColor = "blue"
 
+			# red:   38015
+			# green: 28626
+			# blue:  16341
+			# grey
+
+		# red:   30888
+		# green: 26092
+		# blue:  15946
+		# [INFO] [1714990916.633071]: grey

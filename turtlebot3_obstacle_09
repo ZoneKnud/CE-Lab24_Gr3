@@ -56,8 +56,10 @@ MIDDLE_DISTANCE = CLOSE_DISTANCE + 0.1
 FAR_DISTANCE = MIDDLE_DISTANCE + 0.2
 
 
-SPEED_COUNT = 1
-SPEED_ACCUMULATION = 0.2
+SPEED_COUNT = 0
+SPEED_ACCUMULATION = 0
+
+timestamp = time.time()
 
 running = False
 debug = False
@@ -121,7 +123,7 @@ def countfalse(list):
 	
 	return falsecount
 
-def counttrue(list):
+def truefalse(list):
 	truecount = 0
 	for i in list:
 		if i:
@@ -171,8 +173,8 @@ class Obstacle():
 				scan_filter[i] = 5
 		if debug:
 			time.sleep(0.6)
-		# else:
-		# 	# time.sleep(0.01)
+		else:
+			time.sleep(0.01)
 		
 		return scan_filter
 	
@@ -183,14 +185,13 @@ class Obstacle():
 		if running:
 			twist.linear.x = linear_speed
 			twist.angular.z = angular_Speed
-			SPEED_COUNT += 1
-			SPEED_ACCUMULATION += linear_speed	
 		else:
 			twist.linear.x = 0
 			twist.angular.z = 0
 		# twist.linear.x = 0
 		# twist.angular.z = 0
-		
+		SPEED_COUNT += 1
+		SPEED_ACCUMULATION += linear_speed	
 
 	def full_speed(self, twist):
 		self.set_speed(twist, LINEAR_VEL, 0)
@@ -223,17 +224,7 @@ class Obstacle():
 		blue_count = 0
 		rgb_timestamp = 1
 
-		collision_count = 0
-		collision_timestamp = 0
-
 		turn_till_clear = [0, False]
-		collision_till_clear = [0, False]
-
-		recent_colors = []
-
-		two_minutes = [False, 0]
-
-
 
 		while not rospy.is_shutdown():
 			if self.is_key_available():
@@ -250,10 +241,6 @@ class Obstacle():
 
 				elif char.lower() == 'g':
 					running = True
-				
-				elif char.lower() == 't':
-					two_minutes = [True, time.time() + 120]
-					running = True
 
 				elif char.lower() == 'd':
 					if debug:
@@ -264,14 +251,6 @@ class Obstacle():
 						LINEAR_VEL = 0.07
 						ANGULAR_VEL = 0.6
 						debug = True
-
-			if two_minutes[0] and two_minutes[1] < time.time():
-				twist.linear.x = 0.0
-				twist.angular.z = 0.0
-				self._cmd_pub.publish(twist)
-				led.turnOff()
-				return
-
 
 
 			lidar_distances = self.get_scan()
@@ -295,61 +274,16 @@ class Obstacle():
 			# 	rospy.loginfo(str(i) + ": " + str(cone))
    			
 			lightSensor.getAndUpdateColour()
-
-			if lightSensor.currentColor == "white":
-				LINEAR_VEL = 0.1
-			else:
-				LINEAR_VEL = 0.2
-			# recent_colors.append(lightSensor.currentColor)
-			# # print(lightSensor.currentColor)
-   
-
-			# tmp_greycount = 0
-			# tmp_rgbcount = 0
-			# for i in range(len(recent_colors)):
-			# 	if recent_colors[i] == "red" or recent_colors[i] == "blue" or recent_colors[i] == "green":
-			# 		tmp_rgbcount += 1
-			# 	elif recent_colors[i] == "grey":
-			# 		tmp_greycount += 1
-			
-			# print(recent_colors)		
-			# print(tmp_rgbcount)
-			# print(tmp_greycount)
-
-			# if len(recent_colors) > 4 and tmp_greycount >= 3 and tmp_rgbcount >= 2 and all(i == "grey" for i in recent_colors[-3:]):
-			# 	reversed_colors = list(recent_colors)
-			# 	reversed_colors.reverse()
-
-			# 	for i in range(len(recent_colors)):
-			# 		if reversed_colors[i] == "red":
-			# 			red_count += 1
-			# 			break
-			# 		if reversed_colors[i] == "green":
-			# 			green_count += 1
-			# 			break
-			# 		if reversed_colors[i] == "blue":
-			# 			blue_count += 1
-			# 			break
-				
-			# 	recent_colors = []
-
-
-
-
-			
-	
-			# timing = 3
-			# if rgb_timestamp + timing <= time.time():
-			# 	if lightSensor.currentColor == "red":
-			# 		red_count +=1
-			# 		rgb_timestamp = time.time()
-			# 	elif lightSensor.currentColor == "green":
-			# 		green_count +=1
-			# 		rgb_timestamp = time.time()
-			# 	elif lightSensor.currentColor == "blue":
-			# 		blue_count += 1
-			# 		rgb_timestamp = time.time()
-				
+			# print(lightSensor.currentColor)
+			timing = 3
+			if rgb_timestamp + timing <= time.time():
+				if lightSensor.currentColor == "red":
+					red_count +=1
+				elif lightSensor.currentColor == "green":
+					green_count +=1
+				elif lightSensor.currentColor == "blue":
+					blue_count += 1
+				rgb_timestamp = time.time()
 
 			# speed er linear
    
@@ -425,57 +359,7 @@ class Obstacle():
 			movement_message = ""
 			sign = 1
 
-			collision_cones = list(cones)
-			for i in range(len(collision_cones)):
-			
-				if collision_cones[i] == 0:
-					collision_cones[i] = 1.0
-
-			collision_distances = [0.10,0.11,0.137,0.121,0.105,0.10,0.1028,0.116,0.1015,0,0,0,0,0,0.09575,0.108,0.0965,0.093,0.0968,0.1107,0.135,0.1176,0.101,0.0970]
-
-			for i in range(len(cones)):
-				if (collision_cones[i] < collision_distances[i] - 0.01) and not collision_till_clear[1]:
-				
-			# if min(collision_cones) < COLLISION_DISTANCE :
-					if collision_timestamp < time.time():
-						collision_count += 1
-						collision_timestamp = time.time() + 3
-					
-					if min(collision_cones[0:6]) < COLLISION_DISTANCE:
-						# go back and right
-						movement_message = "COLLISION front left!!!"
-						turn_till_clear = [-ANGULAR_VEL, True]
-						collision_till_clear = [-LINEAR_VEL, True]
-						# collision_till_clear = [0, True]
-						self.set_speed(twist, collision_till_clear[0], 0)
-					elif min(collision_cones[6:12]) < COLLISION_DISTANCE:
-						# go front and right.
-						movement_message = "COLLISION back left!!!"
-						turn_till_clear = [-ANGULAR_VEL, True]
-						collision_till_clear = [LINEAR_VEL, True]
-						# collision_till_clear = [0, True]
-						self.set_speed(twist, collision_till_clear[0], 0)
-					elif min(collision_cones[12:18]) < COLLISION_DISTANCE:
-						# go front and left
-						movement_message = "COLLISION back right!!!"
-						turn_till_clear = [ANGULAR_VEL, True]
-						# collision_till_clear = [0, True]
-						collision_till_clear = [LINEAR_VEL, True]
-						self.set_speed(twist, collision_till_clear[0], 0)
-					else:
-						# go back and left.
-						movement_message = "COLLISION front right!!!"
-						turn_till_clear = [ANGULAR_VEL, True]
-						collision_till_clear = [-LINEAR_VEL, True]
-						# collision_till_clear = [0, True]
-						self.set_speed(twist, collision_till_clear[0], 0)
-	
-	  		if collision_till_clear[1]:
-				# movement_message = "collision_till_clear"
-				self.set_speed(twist, collision_till_clear[0], 0)
-				collision_till_clear[1] = False
-			
-			elif turn_till_clear[1]:
+			if turn_till_clear[1]:
 				movement_message = "turn_till_clear"
 				if minfalse(Fbmiddle,4):
 					turn_till_clear[1] = False
@@ -519,17 +403,17 @@ class Obstacle():
 				# 	self.full_speed(twist)
 
 				# if middle 3 outer cones. FULL SPEED
-				elif ((mintrue(Fbmiddle[:3], 2) and mintrue(Fbmiddle[5:], 2)) and not (mintrue(Fbclose[:3], 2) and mintrue(Fbclose[5:], 2))) and allfalse(Fbmiddle[3:5]):
-					movement_message = "FULL SPEED! 6"
-					self.full_speed(twist)
+				# elif mintrue(Fbmiddle[:3], 3) or mintrue(Fbmiddle[5:], 3) and allfalse(Fbmiddle[4:5]):
+				# 	movement_message = "FULL SPEED! 6"
+				# 	self.full_speed(twist)
 				# if middle 3 outer cones. FULL SPEED
 				# elif mintrue(Fbclose[:3], 2) and mintrue(Fbclose[5:], 2) and allfalse(Fbclose[4:5]):
 				# 	movement_message = "FULL SPEED! 7"
 				# 	self.full_speed(twist)
 
 
-				#### NOW WE TURN ####					
-				elif mintrue(Fbclose[1:7], 5) or alltrue(Fbmiddle[1:7]):
+				#### NOW WE TURN ####
+				elif mintrue(Fbclose[1:7], 5):
 					# Look to the sides and back.
 					# else turn around.
 					# stop turning when clear in front.
@@ -557,15 +441,6 @@ class Obstacle():
 					movement_message = 'Turn right alltrue(Fbclose[4:8])'
 					self.set_speed(twist, LINEAR_VEL / 3,  -ANGULAR_VEL)
 					future_time_stamp = time.time() + 0.2
-
-				elif mintrue(Fbclose[0:4], 3):
-					movement_message = 'Turn left mintrue(Fbclose[0:4], 3)'
-					self.set_speed(twist, LINEAR_VEL / 3,  ANGULAR_VEL)
-					future_time_stamp = time.time() + 0.2
-				elif mintrue(Fbclose[4:8], 3):
-					movement_message = 'Turn right mintrue(Fbclose[4:8], 3)'
-					self.set_speed(twist, LINEAR_VEL / 3,  -ANGULAR_VEL)
-					future_time_stamp = time.time() + 0.2
 				
 				elif alltrue(Fbmiddle[0:4]):
 					movement_message = 'Turn a bit left alltrue(Fbmiddle[0:4])'
@@ -576,34 +451,34 @@ class Obstacle():
 					self.set_speed(twist, LINEAR_VEL * 0.8,  -ANGULAR_VEL / 3)
 					future_time_stamp = time.time() + 0.2
 				
+				elif mintrue(Fbclose[0:4], 3):
+					movement_message = 'Turn left alltrue(Fbclose[0:4])'
+					self.set_speed(twist, LINEAR_VEL / 3,  ANGULAR_VEL)
+					future_time_stamp = time.time() + 0.2
+				elif mintrue(Fbclose[4:8], 3):
+					movement_message = 'Turn right alltrue(Fbclose[4:8])'
+					self.set_speed(twist, LINEAR_VEL / 3,  -ANGULAR_VEL)
+					future_time_stamp = time.time() + 0.2
+				
 
 
 				# The two center cones.
 				elif alltrue(Fbclose[3:5]):
 					# Check cones leangere ude.
-	 				if (counttrue(Fbmiddle[5:8]) + counttrue(Lbfar)) > (counttrue(Fbmiddle[0:3]) + counttrue(Rbfar)):
+	 				if Fbclose[5]:
 						movement_message = 'Turn right alltrue(Fbclose[3:5])'
 						self.set_speed(twist, -LINEAR_VEL / 4, -ANGULAR_VEL)
 					else:
 						movement_message = 'Turn left alltrue(Fbclose[3:5])'
 						self.set_speed(twist, -LINEAR_VEL / 4, ANGULAR_VEL)
-					future_time_stamp = time.time() + 0.2
+					future_time_stamp = time.time() + 0.3
 				elif alltrue(Fbclose[2:4]):
-					if (counttrue(Fbmiddle[4:8]) + counttrue(Lbfar)) > (counttrue(Fbmiddle[0:2]) + counttrue(Rbfar)):
-						movement_message = 'Turn right alltrue(Fbclose[2:4])'
-						self.set_speed(twist, -LINEAR_VEL / 4, -ANGULAR_VEL)
-					else:
-						movement_message = 'Turn left alltrue(Fbclose[2:4])'
-						self.set_speed(twist, -LINEAR_VEL / 4, ANGULAR_VEL)
-					
+					movement_message = 'Turn left alltrue(Fbclose[2:4])'
+					self.set_speed(twist, LINEAR_VEL / 6, ANGULAR_VEL)
 					future_time_stamp = time.time() + 0.2
 				elif alltrue(Fbclose[4:6]):
-					if (counttrue(Fbmiddle[6:8]) + counttrue(Lbfar)) > (counttrue(Fbmiddle[0:4]) + counttrue(Rbfar)):
-						movement_message = 'Turn right alltrue(Fbclose[4:6])'
-						self.set_speed(twist, -LINEAR_VEL / 4, -ANGULAR_VEL)
-					else:
-						movement_message = 'Turn left alltrue(Fbclose[4:6])'
-						self.set_speed(twist, -LINEAR_VEL / 4, ANGULAR_VEL)
+					movement_message = 'Turn right alltrue(Fbclose[4:6])'
+					self.set_speed(twist, LINEAR_VEL / 6, -ANGULAR_VEL)
 					future_time_stamp = time.time() + 0.2
 				
 				elif singletrue(Fbclose[5:7]):
@@ -614,19 +489,11 @@ class Obstacle():
 					movement_message = 'Turn left singletrue(Fbclose[1:3])'
 					self.set_speed(twist, LINEAR_VEL / 2, ANGULAR_VEL * 0.5)
 					# future_time_stamp = time.time() + 0.2
-
-				
-				elif mintrue(Fbmiddle[3:8], 4):
-					movement_message = 'Turn a bit right mintrue(Fbmiddle[3:8], 4)'
-					self.set_speed(twist, LINEAR_VEL / 3, -ANGULAR_VEL)
-				elif mintrue(Fbmiddle[0:6], 4):
-					movement_message = 'Turn a bit left mintrue(Fbmiddle[0:6], 4):'
-					self.set_speed(twist, LINEAR_VEL / 3, ANGULAR_VEL)
+					
 				
 
 				elif alltrue(Fbmiddle[3:5]):
-					# if Fbmiddle[5]:
-					if (counttrue(Fbmiddle[5:8]) + counttrue(Lbfar)) > (counttrue(Fbmiddle[0:3]) + counttrue(Rbfar)):
+					if Fbmiddle[5]:
 						movement_message = 'Turn a bit right alltrue(Fbmiddle[3:5])'
 						self.set_speed(twist, LINEAR_VEL / 3, -ANGULAR_VEL)
 					else:
@@ -634,7 +501,6 @@ class Obstacle():
 						self.set_speed(twist, LINEAR_VEL / 3, ANGULAR_VEL)
 					
 					future_time_stamp = time.time() + 0.1
-					#this makes it turn left handle both true 2:4 & 4:6
 				elif alltrue(Fbmiddle[2:4]):
 					movement_message = 'Turn a bit left alltrue(Fbmiddle[2:4])'
 					self.set_speed(twist, LINEAR_VEL * 0.8, ANGULAR_VEL / 3)
@@ -645,7 +511,7 @@ class Obstacle():
 					future_time_stamp = time.time() + 0.1
 				
 				elif singletrue(Fbmiddle[3:5]):
-					if (counttrue(Fbmiddle[5:8]) + counttrue(Lbfar)) > (counttrue(Fbmiddle[0:3]) + counttrue(Rbfar)):
+					if Fbmiddle[5]:
 						movement_message = 'Turn a bit right singletrue(Fbmiddle[3:5])'
 						self.set_speed(twist, LINEAR_VEL / 3, -ANGULAR_VEL)
 					else:
@@ -894,15 +760,14 @@ class Obstacle():
 
 
 			####### Send data to server ###########
-			data_to_send = cones + binaries + [lightSensor.currentColor] + [red_count, green_count, blue_count] + [movement_message] + Fbinaries + [collision_count, SPEED_ACCUMULATION / SPEED_COUNT]
+			data_to_send = cones + binaries + [lightSensor.currentColor] + [red_count, green_count, blue_count] + [movement_message] + Fbinaries
 			# data_to_send = cones + binaries + ["yellow"] + [red_count, green_count, blue_count] + [movement_message] + Fbinaries
 
 			r = requests.post('http://192.168.137.1:5000/receive_data', json={"data": json.dumps(data_to_send)})
 
 			print(lightSensor.currentColor)
-			print("linear:  " + str(twist.linear.x))
+			print("linear: " + str(twist.linear.x))
 			print("angular: " + str(twist.angular.z))
-			print("collision: " + str(collision_count))
 
 			# print(Fbclose)
 			# print(Fbmiddle)

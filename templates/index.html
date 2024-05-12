@@ -8,12 +8,16 @@
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"
 		integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g=="
 		crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+	<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"
+		integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO"
+		crossorigin="anonymous"></script>
+
 	<style>
 		.center {
 			width: 69px;
 			height: 87px;
-			position: fixed;
-			top: 240px;
+			position: absolute;
+			top: 355px;
 			left: 226px;
 			background-color: rgb(53, 53, 53);
 		}
@@ -33,62 +37,200 @@
 			width: 500px;
 			height: 50px;
 		}
+
+		.parent-container {
+			display: flex;
+			grid-template-columns: repeat(2, 1fr);
+			grid-template-rows: 1fr;
+			grid-column-gap: 0px;
+			grid-row-gap: 0px;
+		}
+
+		.parent-binaries {
+			display: grid;
+			grid-template-columns: repeat(3, 1fr);
+			grid-template-rows: repeat(2, 1fr);
+			grid-column-gap: 0px;
+			grid-row-gap: 0px;
+			height: 100px;
+			width: 500px;
+		}
+
+		#log {
+			font-family: sans-serif;
+		}
+		.pie-overlay {
+			width: 500px;
+			height: 500px;
+			position: absolute;
+			top: 156px;
+			border-radius: 50%;
+			background-image: conic-gradient(black 1deg,transparent 1deg, transparent 14deg, black 14deg, black 15deg, transparent 15deg, transparent 29deg,black 29deg,black 30deg, transparent 30deg, transparent 44deg, black 44deg, black 45deg, transparent 45deg, transparent 59deg, black 59deg, black 60deg,transparent 60deg,transparent 74deg,black 74deg,black 75deg,transparent 75deg,transparent 89deg,black 89deg,black 90deg,transparent 90deg,transparent 104deg,black 104deg,black 105deg,transparent 105deg,transparent 119deg,black 119deg,black 120deg,transparent 120deg,transparent 134deg,black 134deg,black 135deg,transparent 135deg,transparent 149deg,black 149deg,black 150deg,transparent 150deg,transparent 164deg,black 164deg,black 165deg,transparent 165deg,transparent 179deg,black 179deg,black 180deg,transparent 180deg,transparent 194deg,black 194deg,black 195deg,transparent 195deg,transparent 209deg,black 209deg,black 210deg,transparent 210deg,transparent 224deg,black 224deg,black 225deg,transparent 225deg,transparent 239deg,black 239deg,black 240deg,transparent 240deg,transparent 254deg,black 254deg,black 255deg,transparent 255deg,transparent 269deg,black 269deg,black 270deg,transparent 270deg,transparent 284deg,black 284deg,black 285deg,transparent 285deg,transparent 299deg,black 299deg,black 300deg,transparent 300deg,transparent 314deg,black 314deg,black 315deg,transparent 315deg,transparent 329deg,black 329deg,black 330deg,transparent 330deg,transparent 344deg,black 344deg,black 345deg,transparent 345deg,transparent 360deg);
+		}
+
+		#colordata, #colisiondata {
+			font-family: sans-serif;
+		}
 	</style>
 </head>
 
 <body>
-	<div class="container">
-		<div class="center"></div>
-		<div id="color"></div>
-		<div class="pie" id="pie"></div>
+	<div class="center"></div>
+	<div class="center" style="top:823px"></div>
+	<div class="pie-overlay"></div>
+	<div class="parent-container">
+		<div class="" style="width: 500px;">
+			<div id="colordata" class="parent-binaries" style="height:48px"></div>
+			<div id="colisiondata" class="parent-binaries" ></div>
+					
+			<div class="pie" id="pie2"></div>
+			<div class="pie" id="pie"></div>
+		</div>
+
+
 		<div id="right">
-			<p id="databox">Hejsa bror</p>
+			<div id="color">
+			</div>
+			<div class="parent-container">
+				<p id="log"></p>
+				<p id="databox">Hejsa bror</p>
+				
+			</div>
 		</div>
 	</div>
 
 	<script>
 		let pie = document.getElementById("pie");
+		let pie2 = document.getElementById("pie2");
 		let databox = document.getElementById("databox")
 		let colorbox = document.getElementById("color");
+		// let binariesbox = document.getElementById("binaries");
+		let logbox = document.getElementById("log")
+		let colordata = document.getElementById("colordata")
+		let colisiondata = document.getElementById("colisiondata")
 
 		$(document).ready(function () {
-			setInterval(() => {
-				$.getJSON('http://192.168.137.1:5000/get_data', function (data) {
-					console.log(data)
-					
-					databox.innerHTML = "";
-					cones = data.slice(0, 23);
-					cones.reverse();
 
-					var dataToShow = "conic-gradient(";
-					var color = 0;
-					var deg = 0;
-					for (let i = 0; i < cones.length; i++) {
-						databox.innerHTML += cones[i] + "<br>";
-						if (cones[i] > 1) {
-							color = 200
-						} else {
-							color = cones[i] * 100
-						}
+			var socket = io();
+			socket.on('data_from_robot_color', function (msg) {
+				data = msg.data
+				colorbox.style.backgroundColor = data[0];
+				colordata.innerHTML = "";
+				colordata.innerHTML += "<div>Reds: " + data[1] + "</div>";
+				colordata.innerHTML += "<div>Greens: " + data[2] + "</div>";
+				colordata.innerHTML += "<div>Blues: " + data[3] + "</div>";
+				colordata.innerHTML += "<div>Reds: " + data[4] + "</div>";
+				colordata.innerHTML += "<div>Greens: " + data[5] + "</div>";
+				colordata.innerHTML += "<div>Blues: " + data[6] + "</div>";
 
-						// dataToShow += "rgb(" + color + " " + color2 + " " + color3 + ") " + deg + "deg " + (deg + 15);
-						dataToShow += "rgb(" + 255 + " " + color + " " + color + ") " + deg + "deg " + (deg + 15);
-						if (i != 23) {
-							dataToShow += "deg, ";
-						} else {
-							dataToShow += "deg";
-						}
-						// color += 20;
-						// color = Math.floor(Math.random() * 255);;
-						// color3 = Math.floor(Math.random() * 255);;
-						deg += 15;
+			});
+			socket.on('data_from_robot', function (msg) {
+				data = msg.data;
+
+				// data = [0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, true, true, true, false, true, false, "blue"]
+				// for (let i = 0; i < 24; i++) {
+				// 	data[i] = Math.random();
+				// }
+				// data[1] = 0;
+				cones = data.slice(0, 24);
+				
+				cones.reverse();
+				false_array = [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]
+				cones2 = data.slice(35, 51);
+				cones2close = cones2.slice(0,4).reverse().concat(false_array, cones2.slice(4,8).reverse());
+				cones2middle = cones2.slice(8,12).reverse().concat(false_array, cones2.slice(12,16).reverse());
+				// cones2.reverse();
+
+				// binaries = data.slice(24, 30);
+
+				// binariesbox.innerHTML = "";
+
+				// for (let i = 0; i < binaries.length - 3; i++) {
+				// 	const binary = binaries[i + 3];
+				// 	if (binary) {
+				// 		binariesbox.innerHTML += "<div style='background-color:lightgreen;'></div>"
+				// 	}
+				// 	else {
+				// 		binariesbox.innerHTML += "<div style='background-color:white;'></div>"
+				// 	}
+
+				// }
+				// for (let i = 0; i < binaries.length - 3; i++) {
+				// 	const binary = binaries[i];
+				// 	if (binary) {
+				// 		binariesbox.innerHTML += "<div style='background-color:green;'></div>"
+				// 	}
+				// 	else {
+				// 		binariesbox.innerHTML += "<div style='background-color:white;'></div>"
+				// 	}
+
+				// }
+
+				databox.innerHTML = "";
+
+				var dataToShow = "conic-gradient(";
+				var color = 0;
+				var deg = 0;
+				for (let i = 0; i < cones.length; i++) {
+					databox.innerHTML += cones[cones.length - 1 - i] + "<br>";
+					if (cones[i] > 1) {
+						color = 200;
+					} else if (cones[i] == 0) {
+						color = 255;
 					}
-					dataToShow += ")";
-					console.log(dataToShow)
-					pie.style.backgroundImage = dataToShow;
-					colorbox.style.backgroundColor = data[-1];
-				});
-			}, 100);
+					else {
+						color = cones[i] * 100
+					}
+
+					dataToShow += "rgb(" + 255 + " " + color + " " + color + ") " + deg + "deg " + (deg + 15);
+					if (i != 23) {
+						dataToShow += "deg, ";
+					} else {
+						dataToShow += "deg";
+					}
+					deg += 15;
+				}
+				dataToShow += ")";
+				console.log(dataToShow)
+				pie.style.backgroundImage = dataToShow;
+				
+
+				console.log(cones2)
+				console.log(cones2close)
+				console.log(cones2middle)
+
+				deg = 0
+				dataToShow = "conic-gradient(";
+				var color = 0;
+				var deg = 0;
+				for (let i = 0; i < cones2close.length; i++) {
+					if (cones2close[i] == true) {
+						color = "green";
+					} else if (cones2middle[i] == true) {
+						color = "lightgreen";
+					} else {
+						color = "white";
+					}
+
+					dataToShow += color + " " + deg + "deg " + (deg + 15);
+					if (i != 23) {
+						dataToShow += "deg, ";
+					} else {
+						dataToShow += "deg";
+					}
+					deg += 15;
+				}
+				dataToShow += ")";
+				console.log(dataToShow)
+				pie2.style.backgroundImage = dataToShow;
+
+
+				console.log(data[30])
+				colisiondata.innerHTML = "<div>collision_count: " + data[51] + "</div>";
+				colisiondata.innerHTML += "<div>avg_speed: " + data[52] + "</div>";
+
+				logbox.innerHTML = data[34] + "<br>" + logbox.innerHTML;
+			});
 
 		});
 
