@@ -76,7 +76,7 @@
 
 <body>
 	<div class="center"></div>
-	<div class="center" style="top:823px"></div>
+	<div class="center" style="top:859px"></div>
 	<div class="pie-overlay"></div>
 	<div class="parent-container">
 		<div class="" style="width: 500px;">
@@ -104,7 +104,6 @@
 		let pie2 = document.getElementById("pie2");
 		let databox = document.getElementById("databox")
 		let colorbox = document.getElementById("color");
-		// let binariesbox = document.getElementById("binaries");
 		let logbox = document.getElementById("log")
 		let colordata = document.getElementById("colordata")
 		let colisiondata = document.getElementById("colisiondata")
@@ -126,45 +125,16 @@
 			});
 			socket.on('data_from_robot', function (msg) {
 				data = msg.data;
+				console.log(data);
+				data_to_send = cones + [lightSensor.currentColor] + [red_count, green_count, blue_count] + [movement_message] + Fbinaries + [collision_count, SPEED_ACCUMULATION / SPEED_COUNT]
 
-				// data = [0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, true, true, true, false, true, false, "blue"]
-				// for (let i = 0; i < 24; i++) {
-				// 	data[i] = Math.random();
-				// }
-				// data[1] = 0;
 				cones = data.slice(0, 24);
 				
 				cones.reverse();
 				false_array = [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]
-				cones2 = data.slice(35, 51);
+				cones2 = data.slice(29, 45);
 				cones2close = cones2.slice(0,4).reverse().concat(false_array, cones2.slice(4,8).reverse());
 				cones2middle = cones2.slice(8,12).reverse().concat(false_array, cones2.slice(12,16).reverse());
-				// cones2.reverse();
-
-				// binaries = data.slice(24, 30);
-
-				// binariesbox.innerHTML = "";
-
-				// for (let i = 0; i < binaries.length - 3; i++) {
-				// 	const binary = binaries[i + 3];
-				// 	if (binary) {
-				// 		binariesbox.innerHTML += "<div style='background-color:lightgreen;'></div>"
-				// 	}
-				// 	else {
-				// 		binariesbox.innerHTML += "<div style='background-color:white;'></div>"
-				// 	}
-
-				// }
-				// for (let i = 0; i < binaries.length - 3; i++) {
-				// 	const binary = binaries[i];
-				// 	if (binary) {
-				// 		binariesbox.innerHTML += "<div style='background-color:green;'></div>"
-				// 	}
-				// 	else {
-				// 		binariesbox.innerHTML += "<div style='background-color:white;'></div>"
-				// 	}
-
-				// }
 
 				databox.innerHTML = "";
 
@@ -226,10 +196,10 @@
 
 
 				console.log(data[30])
-				colisiondata.innerHTML = "<div>collision_count: " + data[51] + "</div>";
-				colisiondata.innerHTML += "<div>avg_speed: " + data[52] + "</div>";
+				colisiondata.innerHTML = "<div>collision_count: " + data[45] + "</div>";
+				colisiondata.innerHTML += "<div>avg_speed: " + Math.round(data[46] * 100) / 100 + "</div>";
 
-				logbox.innerHTML = data[34] + "<br>" + logbox.innerHTML;
+				logbox.innerHTML = data[28] + "<br>" + logbox.innerHTML;
 			});
 
 		});

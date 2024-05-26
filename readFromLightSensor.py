@@ -20,6 +20,7 @@ class lightSensorRead(object):
 		# ISL29125 address, 0x44(68)
 		# Select configuation-1register, 0x01(01)
 		# 0x0D(13) Operation: RGB, Range: 360 lux, Res: 16 Bits
+		# write_byte_data(i2c_addr, register, value, force=None)
 		self.bus.write_byte_data(0x44, 0x01, 0x05)
 
 	def getAndUpdateColour(self):
@@ -37,47 +38,22 @@ class lightSensorRead(object):
 		self.green = readdata[1] << 8 | readdata[0]
 		self.blue = readdata[5] << 8 | readdata[4]
 
-		# blue = blue
-		# green *= 0.9
-		# red *= 1.3
-
-		# red = int(readdata[3])*256 + int(readdata[2])
-		# green = int(readdata[1])*256 + int(readdata[0])
-		# blue = int(readdata[5])*256 + int(readdata[4])
-
 		print("red:   " + str(self.red))
 		print("green: " + str(self.green))
 		print("blue:  " + str(self.blue))
 
 
-		# if isclose(red, green, abs_tol = 800) and isclose(green, blue, abs_tol = 800) and isclose(red, blue, abs_tol = 800) and green <= 3000:
-		# 	# print("BLACK!!!")
-		# 	self.currentColor = "black"
-		# elif isclose(red, green, abs_tol = 5000) and isclose(green, blue, abs_tol = 5000) and isclose(red, blue, abs_tol = 5000) and green > 10000:
-		# 	# print("WHITE!!!")
 		if self.green > 50000 and self.red > 50000 and self.blue > 50000:
 			self.currentColor = "white"
 		
-		elif self.red > 19000 and self.blue > 19000 and self.green > 19000:
+		elif self.red > 20000 and self.blue > 20000 and self.green > 20000:
 			self.currentColor = "grey"
-		
-		
+
 		elif self.red > self.green and self.red > self.blue + 7000:
-			# print("RED!!!")
 			self.currentColor = "red"
+
 		elif self.green > self.red + 10000 and self.green > self.blue + 5000:
-			# print("GREEN!!!")
 			self.currentColor = "green"
+			
 		else:
-			# print("BLUE!!!")
 			self.currentColor = "blue"
-
-			# red:   38015
-			# green: 28626
-			# blue:  16341
-			# grey
-
-		# red:   30888
-		# green: 26092
-		# blue:  15946
-		# [INFO] [1714990916.633071]: grey

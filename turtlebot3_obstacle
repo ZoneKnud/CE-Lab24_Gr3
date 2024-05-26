@@ -1,27 +1,3 @@
-#!/usr/bin/env python
-#################################################################################
-# Copyright 2018 ROBOTIS CO., LTD.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#################################################################################
-
-# Authors: Gilbert #
-
-# import rospy
-# import math
-# from sensor_msgs.msg import LaserScan
-# from geometry_msgs.msg import Twist
-
 import rospy
 import math
 import time
@@ -38,7 +14,6 @@ import json
 
 
 from readFromLightSensor import lightSensorRead
-# from readFromSonar import sonarSensorRead
 from leds import gpioLED
 
 
@@ -61,8 +36,6 @@ SPEED_ACCUMULATION = 0.2
 
 running = False
 debug = False
-
-# def calculate_speed(min_distance, min_distance_angle):
 
 def Average(lst): 
 	bogus_readings = lst.count(5)
@@ -155,11 +128,8 @@ class Obstacle():
   
 		scan_filter = scan.ranges
 
-		# print(type(scan_filter))
 		scan_filter = list(scan_filter)
-		# print(scan_filter)
 
-		# for i in range(samples_view):
 		for i in range(samples):
 			if scan_filter[i] == float('Inf'):
 				scan_filter[i] = 5
@@ -171,8 +141,6 @@ class Obstacle():
 				scan_filter[i] = 5
 		if debug:
 			time.sleep(0.6)
-		# else:
-		# 	# time.sleep(0.01)
 		
 		return scan_filter
 	
@@ -188,8 +156,6 @@ class Obstacle():
 		else:
 			twist.linear.x = 0
 			twist.angular.z = 0
-		# twist.linear.x = 0
-		# twist.angular.z = 0
 		
 
 	def full_speed(self, twist):
@@ -202,7 +168,9 @@ class Obstacle():
 		global debug
 		global LINEAR_VEL
 		global ANGULAR_VEL
-		# print("hello world")
+		global SPEED_ACCUMULATION
+		global SPEED_COUNT
+
 		twist = Twist()
 		
 		twist.linear.x = 0.1
@@ -210,12 +178,10 @@ class Obstacle():
 		self._cmd_pub.publish(twist)		
 
 		lightSensor = lightSensorRead()
-		# sonarSensor = sonarSensorRead()
 
 		led = gpioLED(16)
 		led.turnOn()
 
-		robot_avoid = False
 		future_time_stamp = time.time()
 
 		red_count = 0
@@ -229,10 +195,7 @@ class Obstacle():
 		turn_till_clear = [0, False]
 		collision_till_clear = [0, False]
 
-		recent_colors = []
-
 		two_minutes = [False, 0]
-
 
 
 		while not rospy.is_shutdown():
@@ -250,6 +213,11 @@ class Obstacle():
 
 				elif char.lower() == 'g':
 					running = True
+
+				elif char.lower() == 'r':
+					collision_count = 0
+					SPEED_ACCUMULATION = 0.2
+					SPEED_COUNT = 1
 				
 				elif char.lower() == 't':
 					two_minutes = [True, time.time() + 120]
@@ -291,71 +259,18 @@ class Obstacle():
 				cones.append(average)
 				# time.sleep(5)
 
-			# for i, cone in enumerate(cones):
-			# 	rospy.loginfo(str(i) + ": " + str(cone))
    			
 			lightSensor.getAndUpdateColour()
 
-			if lightSensor.currentColor == "white":
+			if lightSensor.currentColor != "grey":
 				LINEAR_VEL = 0.1
 			else:
 				LINEAR_VEL = 0.2
-			# recent_colors.append(lightSensor.currentColor)
-			# # print(lightSensor.currentColor)
-   
-
-			# tmp_greycount = 0
-			# tmp_rgbcount = 0
-			# for i in range(len(recent_colors)):
-			# 	if recent_colors[i] == "red" or recent_colors[i] == "blue" or recent_colors[i] == "green":
-			# 		tmp_rgbcount += 1
-			# 	elif recent_colors[i] == "grey":
-			# 		tmp_greycount += 1
-			
-			# print(recent_colors)		
-			# print(tmp_rgbcount)
-			# print(tmp_greycount)
-
-			# if len(recent_colors) > 4 and tmp_greycount >= 3 and tmp_rgbcount >= 2 and all(i == "grey" for i in recent_colors[-3:]):
-			# 	reversed_colors = list(recent_colors)
-			# 	reversed_colors.reverse()
-
-			# 	for i in range(len(recent_colors)):
-			# 		if reversed_colors[i] == "red":
-			# 			red_count += 1
-			# 			break
-			# 		if reversed_colors[i] == "green":
-			# 			green_count += 1
-			# 			break
-			# 		if reversed_colors[i] == "blue":
-			# 			blue_count += 1
-			# 			break
 				
-			# 	recent_colors = []
-
-
-
-
-			
-	
-			# timing = 3
-			# if rgb_timestamp + timing <= time.time():
-			# 	if lightSensor.currentColor == "red":
-			# 		red_count +=1
-			# 		rgb_timestamp = time.time()
-			# 	elif lightSensor.currentColor == "green":
-			# 		green_count +=1
-			# 		rgb_timestamp = time.time()
-			# 	elif lightSensor.currentColor == "blue":
-			# 		blue_count += 1
-			# 		rgb_timestamp = time.time()
-				
-
-			# speed er linear
    
 			close_distances = [0.19, 0.25, 0.32, 0.3, 0.3, 0.32, 0.25, 0.19]
-			# middle_distances = [0.19 + 0.06, 0.25 + 0.07, 0.32 + 0.11, 0.3 + 0.1, 0.3 + 0.1, 0.32 + 0.11, 0.25 + 0.07, 0.19 + 0.06]
 			middle_distances = [0.19 + 0.09, 0.25 + 0.07, 0.32 + 0.11, 0.3 + 0.1, 0.3 + 0.1, 0.32 + 0.11, 0.25 + 0.07, 0.19 + 0.09]
+			middle_distances = [0.28, 0.32, 0.43, 0.4, 0.4, 0.43, 0.32, 0.28]
 			sides_close_distance = [0.16, 0.15, 0.15, 0.16]
 			sides_middel_distance = [0.16 + 0.08, 0.15 + 0.08, 0.15 + 0.08, 0.16 + 0.08]
 			sides_far_distance = [0.16 + 0.08 + 0.07, 0.15 + 0.08 + 0.07, 0.15 + 0.08 + 0.07, 0.16 + 0.08 + 0.07]
@@ -436,7 +351,6 @@ class Obstacle():
 			for i in range(len(cones)):
 				if (collision_cones[i] < collision_distances[i] - 0.01) and not collision_till_clear[1]:
 				
-			# if min(collision_cones) < COLLISION_DISTANCE :
 					if collision_timestamp < time.time():
 						collision_count += 1
 						collision_timestamp = time.time() + 3
@@ -495,37 +409,20 @@ class Obstacle():
 					movement_message = "FULL SPEED! 1"
 					self.full_speed(twist)
 
-				
-				# if close in the outer edge cones in each side. FULL SPEED
-				# if Fbclose[0] and Fbclose[7] and all(i == False for i in Fbclose):
-				# 	self.set_speed(twist, LINEAR_VEL, 0)
-
 				# if middle outer cones. FULL SPEED
 				elif (Fbmiddle[0] or Fbmiddle[7]) and allfalse(Fbmiddle[1:7]):
 					movement_message = "FULL SPEED! 2"
 					self.full_speed(twist)
-				# if CLOSE outer cones. FULL SPEED
-				# elif Fbclose[0] and Fbclose[7] and allfalse(Fbclose[1:7]):
-				# 	movement_message = "FULL SPEED! 3"
-				# 	self.full_speed(twist)
 
 				# if middle 2 outer cones. FULL SPEED
 				elif (singletrue(Fbmiddle[:2]) or singletrue(Fbmiddle[6:])) and allfalse(Fbmiddle[2:6]):
 					movement_message = "FULL SPEED! 4"
 					self.full_speed(twist)
-				# if CLOSE 2 outer cones. FULL SPEED
-				# elif singletrue(Fbclose[:2]) and singletrue(Fbclose[6:]) and allfalse(Fbclose[2:6]):
-				# 	movement_message = "FULL SPEED! 5"
-				# 	self.full_speed(twist)
 
 				# if middle 3 outer cones. FULL SPEED
 				elif ((mintrue(Fbmiddle[:3], 2) and mintrue(Fbmiddle[5:], 2)) and not (mintrue(Fbclose[:3], 2) and mintrue(Fbclose[5:], 2))) and allfalse(Fbmiddle[3:5]):
 					movement_message = "FULL SPEED! 6"
 					self.full_speed(twist)
-				# if middle 3 outer cones. FULL SPEED
-				# elif mintrue(Fbclose[:3], 2) and mintrue(Fbclose[5:], 2) and allfalse(Fbclose[4:5]):
-				# 	movement_message = "FULL SPEED! 7"
-				# 	self.full_speed(twist)
 
 
 				#### NOW WE TURN ####					
@@ -543,8 +440,7 @@ class Obstacle():
 						self.set_speed(twist, 0, ANGULAR_VEL)						
 
 					else:
-						## TURN AROUND 180 deg ##
-	  					############################## SKAL LAVES BEDRE MED BAK #############3
+						## TURN TILL CLEAR ##
 						movement_message = "BLINDGYDE!"
 						turn_till_clear = [-ANGULAR_VEL, True]
 						self.set_speed(twist, 0, -ANGULAR_VEL)
@@ -577,7 +473,6 @@ class Obstacle():
 					future_time_stamp = time.time() + 0.2
 				
 
-
 				# The two center cones.
 				elif alltrue(Fbclose[3:5]):
 					# Check cones leangere ude.
@@ -605,7 +500,8 @@ class Obstacle():
 						movement_message = 'Turn left alltrue(Fbclose[4:6])'
 						self.set_speed(twist, -LINEAR_VEL / 4, ANGULAR_VEL)
 					future_time_stamp = time.time() + 0.2
-				
+
+
 				elif singletrue(Fbclose[5:7]):
 					movement_message = 'Turn right singletrue(Fbclose[5:7])'
 					self.set_speed(twist, LINEAR_VEL / 2, -ANGULAR_VEL * 0.5)
@@ -622,7 +518,7 @@ class Obstacle():
 				elif mintrue(Fbmiddle[0:6], 4):
 					movement_message = 'Turn a bit left mintrue(Fbmiddle[0:6], 4):'
 					self.set_speed(twist, LINEAR_VEL / 3, ANGULAR_VEL)
-				
+
 
 				elif alltrue(Fbmiddle[3:5]):
 					# if Fbmiddle[5]:
@@ -643,6 +539,9 @@ class Obstacle():
 					movement_message = 'Turn a bit right alltrue(Fbmiddle[4:6])'
 					self.set_speed(twist, LINEAR_VEL * 0.8,  -ANGULAR_VEL / 3)
 					future_time_stamp = time.time() + 0.1
+
+
+				
 				
 				elif singletrue(Fbmiddle[3:5]):
 					if (counttrue(Fbmiddle[5:8]) + counttrue(Lbfar)) > (counttrue(Fbmiddle[0:3]) + counttrue(Rbfar)):
@@ -663,9 +562,6 @@ class Obstacle():
 					future_time_stamp = time.time() + 0.1
 
 				
-				
-	
-
 				# if MIDDLE 2 outer cones. Turn a little
 				elif alltrue(Fbmiddle[:2]) or alltrue(Fbmiddle[6:]):
 					movement_message = '2 outer cones MIDDLE alltrue(Fbmiddle[:2]) or alltrue(Fbmiddle[6:])'
@@ -698,204 +594,11 @@ class Obstacle():
 					movement_message = "ELSE (full speed)" + str(Fbinaries)
 					self.full_speed(twist)
 
-				# elif 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-				
-
-			# angular er den inverse
-
-			averages = []
-			# find gennemsnittet af de foreste.
-   
-			averages.append(Average(cones[20:22]))
-			averages.append((cones[0] + cones[23]) / 2)
-			averages.append(Average(cones[:3]))
-
-			binaries = []
-
-			# ####################################
-
-			if averages[0] < CLOSE_DISTANCE:
-				# Vi vil gerne have at den drejer lidt mod venstre
-				binaries.append(True)
-			else:
-				binaries.append(False)
-			
-			if averages[1] < CLOSE_DISTANCE:
-				binaries.append(True)
-			else:
-				binaries.append(False)
-			
-			if averages[2] < CLOSE_DISTANCE:
-				binaries.append(True)
-			else:
-				binaries.append(False)
-
-			# #####################################
-
-			if cones[22] < CLOSE_DISTANCE + 0.1:
-				# Vi vil gerne have at den drejer lidt mod venstre
-				binaries.append(True)
-			else:
-				binaries.append(False)
-			
-			if min([cones[0], cones[23]]) < CLOSE_DISTANCE + 0.2:
-				binaries.append(True)
-			else:
-				binaries.append(False)
-			
-			if cones[1] < CLOSE_DISTANCE + 0.1:
-				binaries.append(True)
-			else:
-				binaries.append(False)
-
-			# print(binaries)
-
-			# ####### Movement logic ###########
-   
-			# if(future_time_stamp < time.time()):
-			# 	if min(cones[19:23]) < COLLISION_DISTANCE and min(cones[19:23]) != 0 or min(cones[:4]) < COLLISION_DISTANCE and min(cones[:4]) != 0:
-			# 		movement_message = "COLLISION!"
-			# 		self.set_speed(twist, -LINEAR_VEL, 0)
-			# 		robot_avoid = True
-			# 		future_time_stamp = time.time() + 0.7
-
-			# 		sign = 1
-			# 		if cones[0] < cones[23]:
-			# 			sign = -1
-
-			# 		# Calculate the angular and linear speed:
-			# 		linear_speed = LINEAR_VEL / 9
-			# 		# If linear speed is high, then angular speed needs to be low.
-			# 		angular_speed = sign * (ANGULAR_VEL)
-
-			# 		self.set_speed(twist, linear_speed, angular_speed)
-
-			# 	elif binaries[0] and binaries[1] and binaries[2]:
-			# 		movement_message = "Something VERY CLOSE turn around!"
-			# 		# Turn hard
-			# 		self.set_speed(twist, 0, ANGULAR_VEL)
-			# 		self._cmd_pub.publish(twist)
-			# 		future_time_stamp = time.time() + 1
-
-			# 	elif binaries[0] and binaries[1]:
-			# 		movement_message = "Something CLOSE to the right, turn!"
-			# 		# Turn to the left sharp
-			# 		self.set_speed(twist, -LINEAR_VEL / 6, ANGULAR_VEL)
-			# 		self._cmd_pub.publish(twist)
-			# 		future_time_stamp = time.time() + 0.3
-
-			# 	elif binaries[1] and binaries[2]:
-			# 		movement_message = "Something CLOSE to the left, turn!"
-			# 		# Turn to the right sharp
-			# 		self.set_speed(twist, -LINEAR_VEL / 6, ANGULAR_VEL)
-			# 		self._cmd_pub.publish(twist)
-			# 		future_time_stamp = time.time() + 0.3
-					
-				
-			# 	elif binaries[0]:
-			# 		movement_message = "Something close to the right, turn a little!"
-			# 		index = cones.index(min(cones[20:23])) # Giver 0, 1 eller 2.
-			# 		index -= 20
-			# 		# Calculate the angular and linear speed:
-			# 		linear_speed = LINEAR_VEL - ((LINEAR_VEL / 9) * (3- index))
-			# 		# If linear speed is high, then angular speed needs to be low.
-			# 		angular_speed = ANGULAR_VEL - ((ANGULAR_VEL / 6) * (3- index))
-
-			# 		self.set_speed(twist, linear_speed, angular_speed)
-			# 		# print(index)
-
-			# 	elif binaries[1]:
-			# 		movement_message = "Something close in front, turn!"
-			# 		sign = 1
-			# 		if cones[0] < cones[23]:
-			# 			sign = -1
-
-			# 		# Calculate the angular and linear speed:
-			# 		linear_speed = LINEAR_VEL / 9
-			# 		# If linear speed is high, then angular speed needs to be low.
-			# 		angular_speed = sign * (ANGULAR_VEL)
-
-			# 		self.set_speed(twist, linear_speed, angular_speed)
-
-			# 	elif binaries[2]:
-			# 		movement_message = "Something close to the left, turn a little!"
-			# 		reverse = cones[:3]
-			# 		reverse.reverse()
-			# 		# print(cones[:3])
-			# 		# print(reverse)
-			# 		# print(min(reverse))
-			# 		index = reverse.index(min(reverse)) # Giver 0, 1 eller 2
-			# 		# Calculate the angular and linear speed:
-			# 		linear_speed = LINEAR_VEL - ((LINEAR_VEL / 9) * (3- index))
-			# 		# If linear speed is high, then angular speed needs to be low.
-			# 		angular_speed = -ANGULAR_VEL - ((ANGULAR_VEL / 6) * (3- index))
-
-			# 		self.set_speed(twist, linear_speed, angular_speed)
-				
-			# 	################### MIDDLE_DISTANCE ####################
-	
-
-			# 	# 2,1,0
-			# 	# 5,4,3
-			# 	# if binaries[0] and binaries[1] and binaries[2]:
-			# 	# 	# Turn hard
-			# 	# 	twist.linear.x = 0
-			# 	# 	twist.angular.z = ANGULAR_VEL
-			# 	# 	self._cmd_pub.publish(twist)
-			# 	# 	time.sleep(1)
-
-			# 	elif binaries[3] and binaries[4]:
-			# 		movement_message = "Something middleclose to the right, turn a little!"
-			# 		# Turn to the left
-			# 		self.set_speed(twist, LINEAR_VEL, ANGULAR_VEL / 6)
-			# 		self._cmd_pub.publish(twist)
-
-			# 	elif binaries[4] and binaries[5]:
-			# 		movement_message = "Something middleclose to the left, turn a little!"
-			# 		# Turn to the right
-			# 		self.set_speed(twist, LINEAR_VEL, -ANGULAR_VEL / 6)
-			# 		self._cmd_pub.publish(twist)
-
-			# 	else:
-			# 		movement_message = "FULL SPEED!"
-			# 		self.set_speed(twist, LINEAR_VEL, 0)
 
 
 			####### Send data to server ###########
-			data_to_send = cones + binaries + [lightSensor.currentColor] + [red_count, green_count, blue_count] + [movement_message] + Fbinaries + [collision_count, SPEED_ACCUMULATION / SPEED_COUNT]
-			# data_to_send = cones + binaries + ["yellow"] + [red_count, green_count, blue_count] + [movement_message] + Fbinaries
+			data_to_send = cones + [lightSensor.currentColor] + [red_count, green_count, blue_count] + [movement_message] + Fbinaries + [collision_count, SPEED_ACCUMULATION / SPEED_COUNT]
 
 			r = requests.post('http://192.168.137.1:5000/receive_data', json={"data": json.dumps(data_to_send)})
 
@@ -903,13 +606,6 @@ class Obstacle():
 			print("linear:  " + str(twist.linear.x))
 			print("angular: " + str(twist.angular.z))
 			print("collision: " + str(collision_count))
-
-			# print(Fbclose)
-			# print(Fbmiddle)
-			# print("average speed: " + str(SPEED_ACCUMULATION / SPEED_COUNT))
-			# print("Red Color Counts:" + str(red_count))
-			# print("Green Color Counts:" + str(green_count))
-			# print("Blue Color Counts:" + str(blue_count))
 
 			self._cmd_pub.publish(twist)
 			turtlebot_moving = True
